@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Huerto · Registro móvil</title>
+  <style>
+    :root {
+      --bg:#f6f7f2;
+      --card:#ffffff;
+      --text:#1f2a1f;
+      --muted:#667066;
+      --line:#dfe5da;
+      --dark:#263426;
+      --soft:#eef3ea;
+      --danger:#8a3b2d;
+      --radius:18px;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header {
+      position:sticky;
+      top:0;
+      z-index:5;
+      background:rgba(246,247,242,.94);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
+      padding:16px;
+    }
+    header h1 { margin:0; font-size:22px; line-height:1.15; }
+    header p { margin:5px 0 0; color:var(--muted); font-size:14px; }
+    main { padding:14px; max-width:760px; margin:0 auto 90px; }
+    .card {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:0 8px 26px rgba(30,40,30,.06);
+      margin-bottom:14px;
+    }
+    label { display:block; font-size:13px; font-weight:700; margin:12px 0 6px; }
+    input, select, textarea, button {
+      width:100%;
+      font:inherit;
+      border-radius:14px;
+    }
+    input, select, textarea {
+      border:1px solid var(--line);
+      padding:12px;
+      background:#fff;
+      color:var(--text);
+    }
+    textarea { min-height:86px; resize:vertical; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .photoBox {
+      border:2px dashed #b9c6b2;
+      border-radius:18px;
+      min-height:210px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--soft);
+      overflow:hidden;
+      position:relative;
+      text-align:center;
+      color:var(--muted);
+      padding:18px;
+    }
+    .photoBox img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
+    .photoActions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+    .btn {
+      border:0;
+      padding:13px 14px;
+      background:var(--dark);
+      color:white;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .btn.secondary { background:#e8eee3; color:var(--dark); border:1px solid var(--line); }
+    .btn.danger { background:#f1e1dd; color:var(--danger); }
+    .summary {
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:10px;
+      margin-bottom:14px;
+    }
+    .kpi {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+    }
+    .kpi small { display:block; color:var(--muted); font-size:12px; }
+    .kpi strong { font-size:20px; }
+    .entry {
+      background:white;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px;
+      margin-top:10px;
+      display:grid;
+      grid-template-columns:82px 1fr;
+      gap:10px;
+    }
+    .entry img {
+      width:82px;
+      height:82px;
+      object-fit:cover;
+      border-radius:12px;
+      background:var(--soft);
+    }
+    .entry h3 { margin:0; font-size:15px; }
+    .entry p { margin:4px 0; color:var(--muted); font-size:13px; }
+    .entry .cost { color:var(--text); font-weight:800; }
+    nav {
+      position:fixed;
+      left:0; right:0; bottom:0;
+      padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+      background:rgba(246,247,242,.96);
+      border-top:1px solid var(--line);
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      z-index:10;
+    }
+    .hint { font-size:13px; color:var(--muted); line-height:1.35; }
+    .hidden { display:none; }
+    @media (max-width:430px) {
+      .grid { grid-template-columns:1fr; }
+      .summary { grid-template-columns:1fr 1fr; }
+      .summary .kpi:last-child { grid-column:1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Huerto · Registro móvil</h1>
+    <p>Foto + fecha + bancal + cultivo + coste. Base para el agente horticultor.</p>
+  </header>
+
+  <main>
+    <section class="summary">
+      <div class="kpi"><small>Registros</small><strong id="kpiCount">0</strong></div>
+      <div class="kpi"><small>Coste total</small><strong id="kpiCost">0 €</strong></div>
+      <div class="kpi"><small>Último bancal</small><strong id="kpiLast">—</strong></div>
+    </section>
+
+    <section class="card" id="formCard">
+      <h2 style="margin:0 0 4px;font-size:19px;">Nuevo registro</h2>
+      <p class="hint" style="margin-top:0;">En móvil, el botón de foto abrirá la cámara. Los datos quedan guardados en este navegador.</p>
+
+      <label for="photo">Foto del bancal o cultivo</label>
+      <div class="photoBox" id="previewBox">
+        <span id="previewText">Pulsa “Hacer foto” y captura el estado actual.</span>
+        <img id="preview" class="hidden" alt="Vista previa" />
+      </div>
+      <div class="photoActions">
+        <label class="btn secondary" style="text-align:center;margin:0;">
+          Hacer foto
+          <input id="photo" type="file" accept="image/*" capture="environment" class="hidden" />
+        </label>
+        <button class="btn secondary" id="clearPhoto" type="button">Quitar foto</button>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="date">Fecha</label>
+          <input id="date" type="date" />
+        </div>
+        <div>
+          <label for="bed">Bancal</label>
+          <select id="bed">
+            <option>Bancal 1</option>
+            <option>Bancal 2</option>
+            <option>Bancal 3</option>
+            <option>Bancal 4</option>
+            <option>Maceta / Tiesto</option>
+            <option>Zona frutales</option>
+            <option>Compost</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="currentCrop">Qué hay ahora</label>
+          <input id="currentCrop" placeholder="Ej. hierba, tomates, vacío..." />
+        </div>
+        <div>
+          <label for="futureCrop">Qué quiero plantar</label>
+          <input id="futureCrop" placeholder="Ej. pimientos, calabacín..." />
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="soil">Estado del suelo</label>
+          <select id="soil">
+            <option>No valorado</option>
+            <option>Bueno / suelto</option>
+            <option>Compactado</option>
+            <option>Seco</option>
+            <option>Muy húmedo</option>
+            <option>Con mucha hierba</option>
+          </select>
+        </div>
+        <div>
+          <label for="irrigation">Riego</label>
+          <select id="irrigation">
+            <option>Sin revisar</option>
+            <option>Goteo correcto</option>
+            <option>Goteo irregular</option>
+            <option>Sin riego</option>
+            <option>Regado manual</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="action">Actuación / observación</label>
+      <textarea id="action" placeholder="Ej. he retirado hierba, añadí compost, veo hojas amarillas, quiero preparar para tomates..."></textarea>
+
+      <div class="grid">
+        <div>
+          <label for="cost">Coste (€)</label>
+          <input id="cost" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" />
+        </div>
+        <div>
+          <label for="priority">Prioridad</label>
+          <select id="priority">
+            <option>Normal</option>
+            <option>Alta</option>
+            <option>Urgente</option>
+            <option>Solo seguimiento</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin:0 0 8px;font-size:19px;">Histórico</h2>
+      <input id="search" placeholder="Buscar por bancal, cultivo, fecha..." />
+      <div id="entries"></div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="btn" id="save">Guardar registro</button>
+    <button class="btn danger" id="export">Exportar JSON</button>
+  </nav>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const storageKey = "huerto_registros_v1";
+    let photoData = "";
+    let entries = JSON.parse(localStorage.getItem(storageKey) || "[]");
+
+    $("date").valueAsDate = new Date();
+
+    function compressImage(file, maxWidth = 1200, quality = 0.72) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const scale = Math.min(1, maxWidth / img.width);
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", quality));
+          };
+          img.onerror = reject;
+          img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    $("photo").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      photoData = await compressImage(file);
+      $("preview").src = photoData;
+      $("preview").classList.remove("hidden");
+      $("previewText").classList.add("hidden");
+    });
+
+    $("clearPhoto").addEventListener("click", () => {
+      photoData = "";
+      $("photo").value = "";
+      $("preview").src = "";
+      $("preview").classList.add("hidden");
+      $("previewText").classList.remove("hidden");
+    });
+
+    function saveEntries() {
+      localStorage.setItem(storageKey, JSON.stringify(entries));
+      render();
+    }
+
+    function adviceFor(entry) {
+      const text = `${entry.currentCrop} ${entry.futureCrop} ${entry.soil} ${entry.irrigation} ${entry.action}`.toLowerCase();
+      const tips = [];
+      if (text.includes("tomate") || text.includes("tomates")) tips.push("Para tomate: revisar goteo, aportar compost maduro y preparar tutor antes de que crezca.");
+      if (text.includes("pimiento") || text.includes("pimientos")) tips.push("Para pimiento: evitar exceso de nitrógeno inicial; mejor suelo templado, mullido y estable.");
+      if (text.includes("calabac") || text.includes("calabacín")) tips.push("Para calabacín: dejar espacio, acolchar y vigilar oídio con humedad.");
+      if (text.includes("hierba") || text.includes("mucha hierba")) tips.push("Si hay mucha hierba: retirar competencia aérea; las raíces finas pueden quedar si no rebrotan.");
+      if (text.includes("compactado")) tips.push("Suelo compactado: no labrar en exceso; airear con horca y añadir materia orgánica superficial.");
+      if (text.includes("goteo irregular")) tips.push("Antes de plantar, resolver el goteo: una planta joven falla más por riego irregular que por falta de abono.");
+      return tips.length ? tips[0] : "Consejo pendiente: con más registros, el agente podrá cruzar cultivo, fecha, suelo y riego.";
+    }
+
+    $("save").addEventListener("click", () => {
+      const entry = {
+        id: Date.now(),
+        date: $("date").value,
+        bed: $("bed").value,
+        currentCrop: $("currentCrop").value.trim(),
+        futureCrop: $("futureCrop").value.trim(),
+        soil: $("soil").value,
+        irrigation: $("irrigation").value,
+        action: $("action").value.trim(),
+        cost: Number($("cost").value || 0),
+        priority: $("priority").value,
+        photo: photoData
+      };
+
+      if (!entry.currentCrop && !entry.futureCrop && !entry.action && !entry.photo) {
+        alert("Mete al menos foto, cultivo u observación.");
+        return;
+      }
+
+      entries.unshift(entry);
+      saveEntries();
+      $("currentCrop").value = "";
+      $("futureCrop").value = "";
+      $("action").value = "";
+      $("cost").value = "";
+      $("clearPhoto").click();
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    });
+
+    $("export").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `huerto-registros-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    $("search").addEventListener("input", render);
+
+    function deleteEntry(id) {
+      if (!confirm("¿Borrar este registro?")) return;
+      entries = entries.filter(e => e.id !== id);
+      saveEntries();
+    }
+
+    window.deleteEntry = deleteEntry;
+
+    function render() {
+      const q = $("search").value.toLowerCase();
+      const filtered = entries.filter(e => JSON.stringify(e).toLowerCase().includes(q));
+      const total = entries.reduce((sum, e) => sum + Number(e.cost || 0), 0);
+      $("kpiCount").textContent = entries.length;
+      $("kpiCost").textContent = `${total.toFixed(2)} €`;
+      $("kpiLast").textContent = entries[0]?.bed || "—";
+
+      $("entries").innerHTML = filtered.length ? filtered.map(e => `
+        <article class="entry">
+          ${e.photo ? `<img src="${e.photo}" alt="${e.bed}">` : `<div style="width:82px;height:82px;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center;">Sin foto</div>`}
+          <div>
+            <h3>${e.bed} · ${e.date}</h3>
+            <p><strong>Ahora:</strong> ${e.currentCrop || "—"} · <strong>Después:</strong> ${e.futureCrop || "—"}</p>
+            <p><strong>Suelo:</strong> ${e.soil} · <strong>Riego:</strong> ${e.irrigation}</p>
+            <p>${e.action || "Sin observación escrita."}</p>
+            <p><strong>Consejo:</strong> ${adviceFor(e)}</p>
+            <p class="cost">${Number(e.cost || 0).toFixed(2)} € · ${e.priority}</p>
+            <button class="btn danger" style="padding:9px;margin-top:6px;" onclick="deleteEntry(${e.id})">Borrar</button>
+          </div>
+        </article>
+      `).join("") : `<p class="hint">Aún no hay registros. Haz una foto del bancal y guarda la primera ficha.</p>`;
+    }
+
+    render();
+  </script>
+</body>
+</html>
